@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.movie.watch.mapper.BoardMapper">
+
+	<!-- 게시글 작성하기 -->
+	<insert id="insertBoard" parameterType="BoardVO">
+		INSERT INTO
+		BOARD(BNO,TITLE,CONTENT,ID,CNT)
+		VALUES(SEQ_BOARD.NEXTVAL,#{title},#{content},#{id},#{cnt})
+		<selectKey keyProperty="bno" resultType="int" order="AFTER">
+			SELECT
+			SEQ_BOARD.CURRVAL FROM DUAL
+		</selectKey>
+	</insert>
+
+	<!-- 검색 -->
+	<sql id="criteria">
+		<trim prefix="(" suffix=") and " prefixOverrides="or"> <!-- prefixOverrides 때문에 choose 안쪽 문에 처음부터 or 을 붙쳐 버린다잉 -->
+			<foreach item='type' collection="typeArr">
+				<trim prefix="or"> <!-- 앞에 붙어 있는거중에 처음 나오는 or을 제거 해주기 위해 trim 'or'을 사용해 정리해준다잉 --> <!-- 인자값에 대문자를 집어 넣으면 ㅈ된다. -->
+					<choose>
+						<when test="type == 'T'.toString()">
+							title like '%' || #{keyword} || '%'
+						</when>
+						<when test="type == 'C'.toString()">
+							content like '%' || #{keyword} || '%'
+						</when>
+						<when test="type == 'W'.toString()">
+							id like '%' || #{keyword} || '%'
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+
+
+	<!-- 조회부분 -->
+
+	<select id="getlistWithPagin" resultType="BoardVO">
+	<![CDATA[
+		SELECT BNO,TITLE,CONTENT,REGDATE,UPDATEDATE,ID
+		FROM(
+		SELECT /*+INDEX_DESC(BOARD BOARD_BNO_PK)*/
+			ROWNUM RN,BNO,TITLE,CONTENT,REGDATE,UPDATEDATE,ID
+			FROM BOARD
+			WHERE
+	]]>
+		<include refid="criteria"></include>
+	<![CDATA[
+		ROWNUM <= #{pageNum} * #{amount}  
+		)
+		WHERE RN > (#{pageNum} -1) * #{amount}
+	]]>
+	</select>
+
+	<!-- 게시물 갯수 구하기 -->
+	<select id="getTotalCount" resultType="int">
+		SELECT COUNT(*) FROM
+		BOARD
+	</select>
+
+	<!-- 게시물 조회 -->
+	<select id="read" resultType="hashMap">
+		SELECT A.*,B.*
+		FROM BOARD A , FILEUPLOAD B
+		WHERE A.bno = B.bno AND A.bno = #{bno}
+	</select>
+
+	<!-- 게시물 수정 -->
+	<update id="update">
+
+	</update>
+
+	<!-- 게시물 삭제하기 -->
+	<delete id="delete">
+
+	</delete>
+
+
+</mapper>
